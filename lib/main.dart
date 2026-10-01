@@ -23,6 +23,16 @@ class ControleTempoCarroApp extends StatelessWidget {
   }
 }
 
+class ServicoFinalizado {
+  const ServicoFinalizado({
+    required this.duracao,
+    required this.finalizadoEm,
+  });
+
+  final Duration duracao;
+  final DateTime finalizadoEm;
+}
+
 class TelaInicial extends StatefulWidget {
   const TelaInicial({super.key});
 
@@ -34,6 +44,7 @@ class _TelaInicialState extends State<TelaInicial> {
   Timer? _timer;
   Duration _duracao = Duration.zero;
   bool _servicoEmAndamento = false;
+  final List<ServicoFinalizado> _servicosFinalizados = [];
 
   void _alternarServico() {
     if (_servicoEmAndamento) {
@@ -57,18 +68,24 @@ class _TelaInicialState extends State<TelaInicial> {
   }
 
   void _finalizarServico() {
-    final tempoFinal = _formatarDuracao(_duracao);
+    final servico = ServicoFinalizado(
+      duracao: _duracao,
+      finalizadoEm: DateTime.now(),
+    );
 
     _timer?.cancel();
 
     setState(() {
       _servicoEmAndamento = false;
       _duracao = Duration.zero;
+      _servicosFinalizados.insert(0, servico);
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Serviço finalizado em $tempoFinal.'),
+        content: Text(
+          'Serviço finalizado em ${_formatarDuracao(servico.duracao)}.',
+        ),
       ),
     );
   }
@@ -79,6 +96,15 @@ class _TelaInicialState extends State<TelaInicial> {
     final segundos = duracao.inSeconds.remainder(60).toString().padLeft(2, '0');
 
     return '$horas:$minutos:$segundos';
+  }
+
+  String _formatarData(DateTime data) {
+    final dia = data.day.toString().padLeft(2, '0');
+    final mes = data.month.toString().padLeft(2, '0');
+    final hora = data.hour.toString().padLeft(2, '0');
+    final minuto = data.minute.toString().padLeft(2, '0');
+
+    return '$dia/$mes às $hora:$minuto';
   }
 
   String _mensagemStatus() {
@@ -148,7 +174,40 @@ class _TelaInicialState extends State<TelaInicial> {
                 ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 24),
+            const Text(
+              'Últimos serviços',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _servicosFinalizados.isEmpty
+                  ? const Center(
+                      child: Text('Nenhum serviço finalizado ainda.'),
+                    )
+                  : ListView.separated(
+                      itemCount: _servicosFinalizados.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final servico = _servicosFinalizados[index];
+
+                        return Card(
+                          child: ListTile(
+                            leading: const Icon(Icons.check_circle_outline),
+                            title: Text(
+                              _formatarDuracao(servico.duracao),
+                            ),
+                            subtitle: Text(
+                              'Finalizado em ${_formatarData(servico.finalizadoEm)}',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
             if (possuiServico) ...[
               OutlinedButton.icon(
                 onPressed: _finalizarServico,

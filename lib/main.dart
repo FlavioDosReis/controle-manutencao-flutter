@@ -56,12 +56,41 @@ class _TelaInicialState extends State<TelaInicial> {
     });
   }
 
+  void _finalizarServico() {
+    final tempoFinal = _formatarDuracao(_duracao);
+
+    _timer?.cancel();
+
+    setState(() {
+      _servicoEmAndamento = false;
+      _duracao = Duration.zero;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Serviço finalizado em $tempoFinal.'),
+      ),
+    );
+  }
+
   String _formatarDuracao(Duration duracao) {
     final horas = duracao.inHours.toString().padLeft(2, '0');
     final minutos = duracao.inMinutes.remainder(60).toString().padLeft(2, '0');
     final segundos = duracao.inSeconds.remainder(60).toString().padLeft(2, '0');
 
     return '$horas:$minutos:$segundos';
+  }
+
+  String _mensagemStatus() {
+    if (_servicoEmAndamento) {
+      return 'Serviço em andamento';
+    }
+
+    if (_duracao == Duration.zero) {
+      return 'Nenhum serviço em andamento';
+    }
+
+    return 'Serviço pausado';
   }
 
   @override
@@ -72,6 +101,8 @@ class _TelaInicialState extends State<TelaInicial> {
 
   @override
   Widget build(BuildContext context) {
+    final possuiServico = _duracao > Duration.zero;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Controle de Tempo'),
@@ -102,9 +133,7 @@ class _TelaInicialState extends State<TelaInicial> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      _servicoEmAndamento
-                          ? 'Serviço em andamento'
-                          : 'Serviço pausado',
+                      _mensagemStatus(),
                       style: const TextStyle(fontSize: 18),
                     ),
                     const SizedBox(height: 24),
@@ -120,13 +149,28 @@ class _TelaInicialState extends State<TelaInicial> {
               ),
             ),
             const Spacer(),
+            if (possuiServico) ...[
+              OutlinedButton.icon(
+                onPressed: _finalizarServico,
+                icon: const Icon(Icons.check),
+                label: const Text('Finalizar serviço'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             FilledButton.icon(
               onPressed: _alternarServico,
               icon: Icon(
                 _servicoEmAndamento ? Icons.pause : Icons.play_arrow,
               ),
               label: Text(
-                _servicoEmAndamento ? 'Pausar serviço' : 'Iniciar serviço',
+                _servicoEmAndamento
+                    ? 'Pausar serviço'
+                    : possuiServico
+                        ? 'Continuar serviço'
+                        : 'Iniciar serviço',
               ),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

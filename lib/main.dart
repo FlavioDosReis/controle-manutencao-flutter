@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 void main() {
@@ -21,8 +23,52 @@ class ControleTempoCarroApp extends StatelessWidget {
   }
 }
 
-class TelaInicial extends StatelessWidget {
+class TelaInicial extends StatefulWidget {
   const TelaInicial({super.key});
+
+  @override
+  State<TelaInicial> createState() => _TelaInicialState();
+}
+
+class _TelaInicialState extends State<TelaInicial> {
+  Timer? _timer;
+  Duration _duracao = Duration.zero;
+  bool _servicoEmAndamento = false;
+
+  void _alternarServico() {
+    if (_servicoEmAndamento) {
+      _timer?.cancel();
+
+      setState(() {
+        _servicoEmAndamento = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _servicoEmAndamento = true;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _duracao += const Duration(seconds: 1);
+      });
+    });
+  }
+
+  String _formatarDuracao(Duration duracao) {
+    final horas = duracao.inHours.toString().padLeft(2, '0');
+    final minutos = duracao.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final segundos = duracao.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    return '$horas:$minutos:$segundos';
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,20 +95,22 @@ class TelaInicial extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.directions_car,
                       size: 48,
-                      color: Colors.blue,
+                      color: _servicoEmAndamento ? Colors.green : Colors.blue,
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Nenhum serviço em andamento',
-                      style: TextStyle(fontSize: 18),
+                    Text(
+                      _servicoEmAndamento
+                          ? 'Serviço em andamento'
+                          : 'Serviço pausado',
+                      style: const TextStyle(fontSize: 18),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      '00:00:00',
-                      style: TextStyle(
+                    Text(
+                      _formatarDuracao(_duracao),
+                      style: const TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.bold,
                       ),
@@ -73,9 +121,13 @@ class TelaInicial extends StatelessWidget {
             ),
             const Spacer(),
             FilledButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Iniciar serviço'),
+              onPressed: _alternarServico,
+              icon: Icon(
+                _servicoEmAndamento ? Icons.pause : Icons.play_arrow,
+              ),
+              label: Text(
+                _servicoEmAndamento ? 'Pausar serviço' : 'Iniciar serviço',
+              ),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

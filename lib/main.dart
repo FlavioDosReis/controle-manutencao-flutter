@@ -1,13 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const ControleTempoCarroApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final preferences = await SharedPreferences.getInstance();
+  runApp(ControleTempoCarroApp(preferences: preferences));
 }
 
 class ControleTempoCarroApp extends StatelessWidget {
-  const ControleTempoCarroApp({super.key});
+  const ControleTempoCarroApp({super.key, required this.preferences});
+
+  final SharedPreferences preferences;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +24,7 @@ class ControleTempoCarroApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const TelaInicial(),
+      home: TelaInicial(preferences: preferences),
     );
   }
 }
@@ -35,16 +41,34 @@ class ServicoFinalizado {
   final String descricao;
   final Duration duracao;
   final DateTime finalizadoEm;
+
+  Map<String, dynamic> toJson() => {
+        'veiculo': veiculo,
+        'descricao': descricao,
+        'duracaoEmMilissegundos': duracao.inMilliseconds,
+        'finalizadoEm': finalizadoEm.toIso8601String(),
+      };
+
+  factory ServicoFinalizado.fromJson(Map<String, dynamic> json) =>
+      ServicoFinalizado(
+        veiculo: json['veiculo'] as String,
+        descricao: json['descricao'] as String,
+        duracao: Duration(milliseconds: json['duracaoEmMilissegundos'] as int),
+        finalizadoEm: DateTime.parse(json['finalizadoEm'] as String),
+      );
 }
 
 class TelaInicial extends StatefulWidget {
-  const TelaInicial({super.key});
+  const TelaInicial({super.key, required this.preferences});
+
+  final SharedPreferences preferences;
 
   @override
   State<TelaInicial> createState() => _TelaInicialState();
 }
 
 class _TelaInicialState extends State<TelaInicial> {
+  static const _historicoKey = 'servicos_finalizados';
   Timer? _timer;
   Duration _duracao = Duration.zero;
   bool _servicoEmAndamento = false;
@@ -53,6 +77,31 @@ class _TelaInicialState extends State<TelaInicial> {
   final _veiculoController = TextEditingController();
   final _descricaoController = TextEditingController();
   final List<ServicoFinalizado> _servicosFinalizados = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarHistorico();
+  }
+
+  Future<void> _carregarHistorico() async {
+    final salvo = widget.preferences.getString(_historicoKey);
+    if (salvo == null) return;
+
+    final historico = (jsonDecode(salvo) as List)
+        .map((item) => ServicoFinalizado.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
+    if (mounted) {
+      setState(() => _servicosFinalizados.addAll(historico));
+    }
+  }
+
+  Future<void> _salvarHistorico() async {
+    await widget.preferences.setString(
+      _historicoKey,
+      jsonEncode(_servicosFinalizados.map((item) => item.toJson()).toList()),
+    );
+  }
 
   void _alternarServico() {
     if (_servicoEmAndamento) {
@@ -107,6 +156,7 @@ class _TelaInicialState extends State<TelaInicial> {
       _descricaoController.clear();
       _servicosFinalizados.insert(0, servico);
     });
+    unawaited(_salvarHistorico());
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

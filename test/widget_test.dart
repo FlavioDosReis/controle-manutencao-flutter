@@ -6,6 +6,7 @@ void main() {
     await tester.pumpWidget(const ControleTempoCarroApp());
 
     expect(find.text('Nenhum serviço em andamento'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Troca de óleo');
     await tester.tap(find.text('Iniciar serviço'));
     await tester.pump();
     expect(find.text('Serviço em andamento'), findsOneWidget);
@@ -18,6 +19,6 @@ void main() {
     await tester.tap(find.text('Finalizar serviço'));
     await tester.pump();
     expect(find.text('Nenhum serviço em andamento'), findsOneWidget);
-    expect(find.text('00:00:01'), findsOneWidget);
+    expect(find.text('Troca de óleo'), findsOneWidget);
   });
 }

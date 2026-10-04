@@ -25,10 +25,12 @@ class ControleTempoCarroApp extends StatelessWidget {
 
 class ServicoFinalizado {
   const ServicoFinalizado({
+    required this.descricao,
     required this.duracao,
     required this.finalizadoEm,
   });
 
+  final String descricao;
   final Duration duracao;
   final DateTime finalizadoEm;
 }
@@ -44,6 +46,8 @@ class _TelaInicialState extends State<TelaInicial> {
   Timer? _timer;
   Duration _duracao = Duration.zero;
   bool _servicoEmAndamento = false;
+  String? _descricaoServico;
+  final _descricaoController = TextEditingController();
   final List<ServicoFinalizado> _servicosFinalizados = [];
 
   void _alternarServico() {
@@ -54,6 +58,17 @@ class _TelaInicialState extends State<TelaInicial> {
         _servicoEmAndamento = false;
       });
       return;
+    }
+
+    if (_duracao == Duration.zero) {
+      final descricao = _descricaoController.text.trim();
+      if (descricao.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Informe o serviço antes de iniciar.')),
+        );
+        return;
+      }
+      _descricaoServico = descricao;
     }
 
     setState(() {
@@ -69,6 +84,7 @@ class _TelaInicialState extends State<TelaInicial> {
 
   void _finalizarServico() {
     final servico = ServicoFinalizado(
+      descricao: _descricaoServico ?? 'Serviço sem descrição',
       duracao: _duracao,
       finalizadoEm: DateTime.now(),
     );
@@ -78,6 +94,8 @@ class _TelaInicialState extends State<TelaInicial> {
     setState(() {
       _servicoEmAndamento = false;
       _duracao = Duration.zero;
+      _descricaoServico = null;
+      _descricaoController.clear();
       _servicosFinalizados.insert(0, servico);
     });
 
@@ -122,6 +140,7 @@ class _TelaInicialState extends State<TelaInicial> {
   @override
   void dispose() {
     _timer?.cancel();
+    _descricaoController.dispose();
     super.dispose();
   }
 
@@ -139,6 +158,17 @@ class _TelaInicialState extends State<TelaInicial> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            TextField(
+              controller: _descricaoController,
+              enabled: !_servicoEmAndamento && _duracao == Duration.zero,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Serviço',
+                hintText: 'Ex.: troca de óleo',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
             const Text(
               'Serviço atual',
               style: TextStyle(
@@ -197,11 +227,9 @@ class _TelaInicialState extends State<TelaInicial> {
                         return Card(
                           child: ListTile(
                             leading: const Icon(Icons.check_circle_outline),
-                            title: Text(
-                              _formatarDuracao(servico.duracao),
-                            ),
+                            title: Text(servico.descricao),
                             subtitle: Text(
-                              'Finalizado em ${_formatarData(servico.finalizadoEm)}',
+                              '${_formatarDuracao(servico.duracao)} • Finalizado em ${_formatarData(servico.finalizadoEm)}',
                             ),
                           ),
                         );

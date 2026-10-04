@@ -1,30 +1,23 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:controle_tempo_carro/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:controle_tempo_carro/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('inicia, pausa e finaliza um serviço', (tester) async {
+    await tester.pumpWidget(const ControleTempoCarroApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    expect(find.text('Nenhum serviço em andamento'), findsOneWidget);
+    await tester.tap(find.text('Iniciar serviço'));
     await tester.pump();
+    expect(find.text('Serviço em andamento'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Pausar serviço'));
+    await tester.pump();
+    expect(find.text('Serviço pausado'), findsOneWidget);
+
+    await tester.tap(find.text('Finalizar serviço'));
+    await tester.pump();
+    expect(find.text('Nenhum serviço em andamento'), findsOneWidget);
+    expect(find.text('00:00:01'), findsOneWidget);
   });
 }

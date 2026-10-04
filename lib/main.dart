@@ -25,11 +25,13 @@ class ControleTempoCarroApp extends StatelessWidget {
 
 class ServicoFinalizado {
   const ServicoFinalizado({
+    required this.veiculo,
     required this.descricao,
     required this.duracao,
     required this.finalizadoEm,
   });
 
+  final String veiculo;
   final String descricao;
   final Duration duracao;
   final DateTime finalizadoEm;
@@ -46,7 +48,9 @@ class _TelaInicialState extends State<TelaInicial> {
   Timer? _timer;
   Duration _duracao = Duration.zero;
   bool _servicoEmAndamento = false;
+  String? _veiculoServico;
   String? _descricaoServico;
+  final _veiculoController = TextEditingController();
   final _descricaoController = TextEditingController();
   final List<ServicoFinalizado> _servicosFinalizados = [];
 
@@ -61,13 +65,15 @@ class _TelaInicialState extends State<TelaInicial> {
     }
 
     if (_duracao == Duration.zero) {
+      final veiculo = _veiculoController.text.trim();
       final descricao = _descricaoController.text.trim();
-      if (descricao.isEmpty) {
+      if (veiculo.isEmpty || descricao.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Informe o serviço antes de iniciar.')),
+          const SnackBar(content: Text('Informe o veículo e o serviço antes de iniciar.')),
         );
         return;
       }
+      _veiculoServico = veiculo;
       _descricaoServico = descricao;
     }
 
@@ -84,6 +90,7 @@ class _TelaInicialState extends State<TelaInicial> {
 
   void _finalizarServico() {
     final servico = ServicoFinalizado(
+      veiculo: _veiculoServico ?? 'Veículo não informado',
       descricao: _descricaoServico ?? 'Serviço sem descrição',
       duracao: _duracao,
       finalizadoEm: DateTime.now(),
@@ -94,7 +101,9 @@ class _TelaInicialState extends State<TelaInicial> {
     setState(() {
       _servicoEmAndamento = false;
       _duracao = Duration.zero;
+      _veiculoServico = null;
       _descricaoServico = null;
+      _veiculoController.clear();
       _descricaoController.clear();
       _servicosFinalizados.insert(0, servico);
     });
@@ -140,6 +149,7 @@ class _TelaInicialState extends State<TelaInicial> {
   @override
   void dispose() {
     _timer?.cancel();
+    _veiculoController.dispose();
     _descricaoController.dispose();
     super.dispose();
   }
@@ -158,6 +168,17 @@ class _TelaInicialState extends State<TelaInicial> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            TextField(
+              controller: _veiculoController,
+              enabled: !_servicoEmAndamento && _duracao == Duration.zero,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Veículo ou placa',
+                hintText: 'Ex.: HB20 • ABC1D23',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _descricaoController,
               enabled: !_servicoEmAndamento && _duracao == Duration.zero,
@@ -227,10 +248,11 @@ class _TelaInicialState extends State<TelaInicial> {
                         return Card(
                           child: ListTile(
                             leading: const Icon(Icons.check_circle_outline),
-                            title: Text(servico.descricao),
+                            title: Text(servico.veiculo),
                             subtitle: Text(
-                              '${_formatarDuracao(servico.duracao)} • Finalizado em ${_formatarData(servico.finalizadoEm)}',
+                              '${servico.descricao} • ${_formatarDuracao(servico.duracao)}\nFinalizado em ${_formatarData(servico.finalizadoEm)}',
                             ),
+                            isThreeLine: true,
                           ),
                         );
                       },
